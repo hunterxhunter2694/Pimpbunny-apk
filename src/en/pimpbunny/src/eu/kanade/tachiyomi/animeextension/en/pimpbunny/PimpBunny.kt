@@ -163,7 +163,7 @@ class PimpBunny : ParsedAnimeHttpLegacySource() {
         }
     }
 
-    override fun videoUrlParse(document: Document): String =
+    override fun videoUrlParse(response: Response): String =
         throw UnsupportedOperationException()
 
     companion object {
