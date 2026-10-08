@@ -24,14 +24,31 @@ jobs:
           mkdir -p base/src/en/pimpbunny
           cp -r ext/src/en/pimpbunny/. base/src/en/pimpbunny/
 
-      - name: Show sample extension build files (for debugging)
+      - name: Create build.gradle from a real extension in the base project
         run: |
-          echo "---- animetoki/build.gradle ----"
-          cat base/src/en/animetoki/build.gradle || true
-          echo "---- rule34video/build.gradle ----"
-          cat base/src/en/rule34video/build.gradle || true
-          echo "---- yours ----"
-          cat base/src/en/pimpbunny/build.gradle
+          DEST=base/src/en/pimpbunny/build.gradle
+          TEMPLATE=$(grep -l "extension.legacy" base/src/en/*/build.gradle 2>/dev/null \
+            | xargs -r grep -L "dependencies" \
+            | xargs -r grep -L "libVersion" \
+            | head -1)
+          echo "Template: $TEMPLATE"
+          if [ -n "$TEMPLATE" ]; then
+            echo "---- template content ----"
+            cat "$TEMPLATE"
+            sed -E \
+              -e "s/^( *extName *= *).*/\1'PimpBunny'/" \
+              -e "s/^( *extClass *= *).*/\1'.PimpBunny'/" \
+              -e "s/^( *extVersionCode *= *).*/\1 1/" \
+              -e "s/^( *isNsfw *= *).*/\1true/" \
+              "$TEMPLATE" > "$DEST"
+            if ! grep -q "isNsfw" "$DEST"; then
+              sed -i "/extVersionCode/a\    isNsfw = true" "$DEST"
+            fi
+          else
+            echo "No template found, keeping the build.gradle from this repo"
+          fi
+          echo "---- build.gradle being used ----"
+          cat "$DEST"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -43,10 +60,27 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build debug APK
+        shell: bash
         working-directory: base
         run: |
           chmod +x ./gradlew
-          ./gradlew :src:en:pimpbunny:assembleDebug --stacktrace
+          # The base project fails the build on code-style issues, so auto-fix formatting first
+          ./gradlew :src:en:pimpbunny:spotlessApply --stacktrace 2>&1 | tee build.log
+          ./gradlew :src:en:pimpbunny:assembleDebug --stacktrace 2>&1 | tee -a build.log
+
+      - name: Show errors in the run summary
+        if: failure()
+        run: |
+          {
+            echo "## Build errors"
+            echo '```'
+            grep -E -B2 -A15 "What went wrong|^e: |Execution failed" base/build.log | head -120 || true
+            echo '```'
+            echo "## build.gradle used"
+            echo '```'
+            cat base/src/en/pimpbunny/build.gradle
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
