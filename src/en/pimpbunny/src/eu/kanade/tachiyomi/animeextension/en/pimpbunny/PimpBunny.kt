@@ -5,10 +5,10 @@ import eu.kanade.tachiyomi.animesource.model.AnimesPage
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
-import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.interceptor.rateLimit
 import eu.kanade.tachiyomi.util.asJsoup
+import keiyoushi.utils.ParsedAnimeHttpLegacySource
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -17,7 +17,7 @@ import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
-class PimpBunny : ParsedAnimeHttpSource() {
+class PimpBunny : ParsedAnimeHttpLegacySource() {
 
     override val name = "PimpBunny"
 
@@ -146,8 +146,8 @@ class PimpBunny : ParsedAnimeHttpSource() {
 
         // 1) Normal <video><source> tags
         val fromTags = document.select(videoListSelector())
+            .filter { it.attr("abs:src").isNotBlank() }
             .map { videoFromElement(it) }
-            .filter { it.url.isNotBlank() }
         if (fromTags.isNotEmpty()) return fromTags
 
         // 2) Fallback: URL in page metadata / JSON-LD
