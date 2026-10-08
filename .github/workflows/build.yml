@@ -20,11 +20,21 @@ jobs:
 
       - name: Add your extension to the base project
         run: |
+          rm -rf base/src/en/pimpbunny
           mkdir -p base/src/en/pimpbunny
           cp -r ext/src/en/pimpbunny/. base/src/en/pimpbunny/
 
+      - name: Show sample extension build files (for debugging)
+        run: |
+          echo "---- animetoki/build.gradle ----"
+          cat base/src/en/animetoki/build.gradle || true
+          echo "---- rule34video/build.gradle ----"
+          cat base/src/en/rule34video/build.gradle || true
+          echo "---- yours ----"
+          cat base/src/en/pimpbunny/build.gradle
+
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: 17
           distribution: temurin
