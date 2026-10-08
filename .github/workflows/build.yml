@@ -1,1 +1,45 @@
+name: Build PimpBunny APK
 
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your extension (this repo)
+        uses: actions/checkout@v4
+        with:
+          path: ext
+
+      - name: Checkout extensions base project
+        uses: actions/checkout@v4
+        with:
+          repository: yuzono/anime-extensions
+          path: base
+
+      - name: Add your extension to the base project
+        run: |
+          mkdir -p base/src/en/pimpbunny
+          cp -r ext/src/en/pimpbunny/. base/src/en/pimpbunny/
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        working-directory: base
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :src:en:pimpbunny:assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pimpbunny-apk
+          path: base/src/en/pimpbunny/build/outputs/apk/debug/*.apk
